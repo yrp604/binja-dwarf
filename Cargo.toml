@@ -1,0 +1,21 @@
+[package]
+name = "binja-dwarf"
+version = "0.1.0"
+authors = ["yrp <yrp604@protonmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# binja = { git = "https://gitlab.com/rsnyder/binja-rs.git", features = ["rayon"] }
+ binja = { path = "../binja-rs", features = ["rayon"] }
+dwarf_dis = { path = "../dwarf-dis" }
+log = "0.4"
+rayon = "1"
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+panic = "abort"
+lto = true
