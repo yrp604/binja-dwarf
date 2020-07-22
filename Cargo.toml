@@ -8,8 +8,8 @@ edition = "2018"
 
 [dependencies]
 # binja = { git = "https://gitlab.com/rsnyder/binja-rs.git", features = ["rayon"] }
- binja = { path = "../binja-rs", features = ["rayon"] }
-dwarf_dis = { path = "../dwarf-dis" }
+binja = { path = "../binja-rs", features = ["rayon"] }
+dwarf-dis = { path = "../dwarf-dis" }
 log = "0.4"
 rayon = "1"
 

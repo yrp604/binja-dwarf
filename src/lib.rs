@@ -5,6 +5,7 @@ use std::fmt;
 use log::*;
 
 use binja::architecture;
+use binja::architecture::ArchitectureExt;
 use binja::architecture::CoreArchitecture;
 use binja::architecture::CustomArchitectureHandle;
 use binja::architecture::InstructionInfo;
@@ -416,6 +417,8 @@ impl architecture::Architecture for DwarfArch {
 
         let mut cont = true;
 
+        // il.unimplemented().append();
+
         match op {
             Op::Addr(a) => il.push(8, il.load(8, a)).append(),
             Op::Deref => il.push(8, il.load(8, il.pop(8))).append(),
@@ -438,7 +441,7 @@ impl architecture::Architecture for DwarfArch {
                 il.set_reg(
                     8,
                     llil::Register::Temp(0),
-                    il.load(8, il.add(8, il.reg(8, Register::new(MAX_REG_NO)), 8u64)),
+                    il.load(8, il.add(8, il.reg(8, Register::new(REG_SP)), 8u64)),
                 )
                 .append();
 
@@ -473,9 +476,9 @@ impl architecture::Architecture for DwarfArch {
                 il.set_reg(8, llil::Register::Temp(1), il.pop(8)).append();
                 il.set_reg(8, llil::Register::Temp(2), il.pop(8)).append();
 
-                il.push(8, il.reg(8, llil::Register::Temp(1))).append();
-                il.push(8, il.reg(8, llil::Register::Temp(2))).append();
                 il.push(8, il.reg(8, llil::Register::Temp(0))).append();
+                il.push(8, il.reg(8, llil::Register::Temp(2))).append();
+                il.push(8, il.reg(8, llil::Register::Temp(1))).append();
             }
             Op::Abs => {
                 // bit hack for abs:
@@ -559,7 +562,7 @@ impl architecture::Architecture for DwarfArch {
             }
             Op::Xor => il.push(8, il.xor(8, il.pop(8), il.pop(8))).append(),
             Op::Bra(off) => {
-                let cond_expr = il.cmp_e(8, il.pop(8), 0u64);
+                let cond_expr = il.cmp_ne(8, il.pop(8), 0u64);
 
                 let mut new_false: Option<Label> = None;
                 let mut new_true: Option<Label> = None;
@@ -729,15 +732,47 @@ impl AsRef<CoreArchitecture> for DwarfArch {
     }
 }
 
+use binja::callingconvention::*;
+
+#[derive(Copy, Clone, Default, Eq, PartialEq, Hash)]
+struct DwarfCC {}
+
+impl CallingConventionBase for DwarfCC {
+    type Arch = DwarfArch;
+
+    fn caller_saved_registers(&self) -> Vec<Register> { Vec::new() }
+
+    fn callee_saved_registers(&self) -> Vec<Register> { Vec::new() }
+
+    fn int_arg_registers(&self) -> Vec<Register> { Vec::new() }
+
+    fn float_arg_registers(&self) -> Vec<Register> { Vec::new() }
+    fn arg_registers_shared_index(&self) -> bool { false }
+
+    fn reserved_stack_space_for_arg_registers(&self) -> bool { false }
+    fn stack_adjusted_on_return(&self) -> bool { false }
+
+    fn return_int_reg(&self)     -> Option<Register> { None }
+    fn return_hi_int_reg(&self)  -> Option<Register> { None }
+    fn return_float_reg(&self)   -> Option<Register> { None }
+    fn global_pointer_reg(&self) -> Option<Register> { None }
+
+    fn implicitly_defined_registers(&self) -> Vec<Register> { Vec::new() }
+}
+
 #[no_mangle]
 #[allow(non_snake_case)]
 pub extern "C" fn CorePluginInit() -> bool {
+
     binja::logger::init(log::LevelFilter::Trace).expect("Failed to set up logging");
 
-    architecture::register_architecture("DWARF", |custom_handle, core_arch| DwarfArch {
+    let arch = architecture::register_architecture("DWARF", |custom_handle, core_arch| DwarfArch {
         handle: core_arch,
         custom_handle: custom_handle,
     });
+
+    let cc = register_calling_convention(arch, "default", DwarfCC::default());
+    arch.set_default_calling_convention(&cc);
 
     true
 }
