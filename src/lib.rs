@@ -4,17 +4,17 @@ use std::fmt;
 
 use log::*;
 
-use binja::architecture;
-use binja::architecture::ArchitectureExt;
-use binja::architecture::CoreArchitecture;
-use binja::architecture::CustomArchitectureHandle;
-use binja::architecture::InstructionInfo;
-use binja::architecture::{
+use binaryninja::architecture;
+use binaryninja::architecture::ArchitectureExt;
+use binaryninja::architecture::CoreArchitecture;
+use binaryninja::architecture::CustomArchitectureHandle;
+use binaryninja::architecture::InstructionInfo;
+use binaryninja::architecture::{
     FlagCondition, FlagRole, ImplicitRegisterExtend, Register as Reg, RegisterInfo,
 };
 
-use binja::llil;
-use binja::llil::{Label, Liftable, LiftableWithSize, LiftedExpr, LiftedNonSSA, Mutable, NonSSA};
+use binaryninja::llil;
+use binaryninja::llil::{Label, Liftable, LiftableWithSize, LiftedExpr, LiftedNonSSA, Mutable, NonSSA};
 
 use dwarf_dis::{decode, Op};
 
@@ -210,8 +210,8 @@ impl architecture::Architecture for DwarfArch {
 
     type InstructionTextContainer = Vec<architecture::InstructionTextToken>;
 
-    fn endianness(&self) -> binja::Endianness {
-        binja::Endianness::LittleEndian
+    fn endianness(&self) -> binaryninja::Endianness {
+        binaryninja::Endianness::LittleEndian
     }
 
     fn address_size(&self) -> usize {
@@ -732,7 +732,7 @@ impl AsRef<CoreArchitecture> for DwarfArch {
     }
 }
 
-use binja::callingconvention::*;
+use binaryninja::callingconvention::*;
 
 #[derive(Copy, Clone, Default, Eq, PartialEq, Hash)]
 struct DwarfCC {}
@@ -758,13 +758,15 @@ impl CallingConventionBase for DwarfCC {
     fn global_pointer_reg(&self) -> Option<Register> { None }
 
     fn implicitly_defined_registers(&self) -> Vec<Register> { Vec::new() }
+
+    fn is_eligible_for_heuristics(&self) -> bool { true }
 }
 
 #[no_mangle]
 #[allow(non_snake_case)]
 pub extern "C" fn CorePluginInit() -> bool {
 
-    binja::logger::init(log::LevelFilter::Trace).expect("Failed to set up logging");
+    binaryninja::logger::init(log::LevelFilter::Trace).expect("Failed to set up logging");
 
     let arch = architecture::register_architecture("DWARF", |custom_handle, core_arch| DwarfArch {
         handle: core_arch,
